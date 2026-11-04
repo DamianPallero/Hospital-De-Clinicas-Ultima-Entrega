@@ -1,0 +1,148 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sigsm_web
+    ports:
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:443:443"
+    volumes:
+      - ./:/var/www/html/sigsm
+    depends_on:
+      db_primary:
+        condition: service_healthy
+      db_replica:
+        condition: service_healthy
+    environment:
+      APP_ENV: development
+      APP_FORCE_HTTPS: "false"
+      DB_HOST: db_primary
+      DB_REPLICA_HOST: db_replica
+      DB_FAILOVER_HOST: db_replica
+      MYSQL_BACKUP_HOST: db_replica
+      DB_NAME: sigsm
+      DB_USER: sigsm_user
+      DB_PASS: sigsm_secure_password
+      DB_OFFLINE_MODE: "true"
+    restart: unless-stopped
+
+  db_primary:
+    image: mysql:8.0
+    container_name: sigsm_db_primary
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_secure_password
+      MYSQL_DATABASE: sigsm
+      MYSQL_USER: sigsm_user
+      MYSQL_PASSWORD: sigsm_secure_password
+      MYSQL_ROOT_HOST: "%"
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - db_primary_data:/var/lib/mysql
+    restart: unless-stopped
+    command:
+      - --default-authentication-plugin=caching_sha2_password
+      - --server-id=1
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  db_replica:
+    image: mysql:8.0
+    container_name: sigsm_db_replica
+    ports:
+      - "3308:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_secure_password
+      MYSQL_ROOT_HOST: "%"
+    depends_on:
+      db_primary:
+        condition: service_healthy
+    volumes:
+      - ./database/setup_replica.sql:/docker-entrypoint-initdb.d/02-setup-replica.sql
+      - db_replica_data:/var/lib/mysql
+    restart: unless-stopped
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        until mysqladmin ping -h db_primary -uroot -p"$${MYSQL_ROOT_PASSWORD}" --silent; do
+          echo "Waiting for db_primary..."
+          sleep 2
+        done
+        exec docker-entrypoint.sh mysqld --default-authentication-plugin=caching_sha2_password --server-id=2 --relay-log=relay-bin --read-only=1 --gtid-mode=ON --enforce-gtid-consistency=ON --log-slave-updates=1
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -uroot -p$$MYSQL_ROOT_PASSWORD -e \"SHOW SLAVE STATUS\\G\" | grep -E \"Slave_IO_Running: Yes|Slave_SQL_Running: Yes\" >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  failover_monitor:
+    image: mysql:8.0
+    container_name: sigsm_failover_monitor
+    depends_on:
+      db_replica:
+        condition: service_healthy
+    environment:
+      MYSQL_ROOT_PASSWORD: root_secure_password
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        until mysqladmin ping -h db_replica -uroot -p"$${MYSQL_ROOT_PASSWORD}" --silent; do
+          echo "Waiting for db_replica..."
+          sleep 2
+        done
+        while true; do
+          if ! mysqladmin ping -h db_primary -uroot -p"$${MYSQL_ROOT_PASSWORD}" --silent >/dev/null 2>&1; then
+            echo "[failover] Primary unavailable. Checking replica promotion..."
+            if mysql -uroot -p"$${MYSQL_ROOT_PASSWORD}" -h db_replica -e "SELECT @@read_only" 2>/dev/null | tail -n +2 | grep -q '1'; then
+              mysql -uroot -p"$${MYSQL_ROOT_PASSWORD}" -h db_replica -e "STOP SLAVE; RESET SLAVE ALL; SET GLOBAL read_only = 0;"
+              echo "[failover] Replica promoted to writable primary."
+            else
+              echo "[failover] Replica already writable or promotion not needed."
+            fi
+          fi
+          sleep 10
+        done
+    restart: unless-stopped
+
+  failback_monitor:
+    image: mysql:8.0
+    container_name: sigsm_failback_monitor
+    depends_on:
+      db_primary:
+        condition: service_healthy
+      db_replica:
+        condition: service_healthy
+    environment:
+      MYSQL_ROOT_PASSWORD: root_secure_password
+    volumes:
+      - ./database/failback_primary.sh:/usr/local/bin/failback_primary.sh:ro
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        chmod +x /usr/local/bin/failback_primary.sh
+        while true; do
+          if mysqladmin ping -h db_primary -uroot -p"$${MYSQL_ROOT_PASSWORD}" --silent >/dev/null 2>&1; then
+            if mysql -uroot -p"$${MYSQL_ROOT_PASSWORD}" -h db_replica -e "SELECT @@read_only" 2>/dev/null | tail -n +2 | grep -q '0'; then
+              echo "[failback] Primary is back. Reattaching replica to db_primary..."
+              /usr/local/bin/failback_primary.sh
+            fi
+          fi
+          sleep 30
+        done
+    restart: unless-stopped
+
+volumes:
+  db_primary_data:
+  db_replica_data:
