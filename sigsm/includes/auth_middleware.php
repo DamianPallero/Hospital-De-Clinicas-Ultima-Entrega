@@ -108,7 +108,7 @@ function obtenerPermisosPorRol($rolNom) {
             'ver_documentos', 'cargar_documentos', 'eliminar_documentos',
             'ver_encuestas', 'gestionar_encuestas', 'ver_respuestas_encuestas',
             'ver_traslados', 'crear_traslado', 'actualizar_estado_traslado', 'asignar_traslado',
-            'ver_vehiculos', 'gestionar_vehiculos',
+            'ver_vehiculos', 'gestionar_vehiculos', 'gestionar_personal_transporte',
             'gestionar_usuarios',
             'gestionar_categorias',
             'gestionar_backups',
@@ -126,7 +126,7 @@ function obtenerPermisosPorRol($rolNom) {
         'IT' => [
             'ver_documentos',
             'ver_encuestas', 'gestionar_encuestas', 'ver_respuestas_encuestas', 'gestionar_categorias',
-            'ver_traslados', 'actualizar_estado_traslado', 'ver_vehiculos', 'gestionar_vehiculos',
+            'ver_traslados', 'actualizar_estado_traslado', 'ver_vehiculos', 'gestionar_vehiculos', 'gestionar_personal_transporte',
             'gestionar_backups',
         ],
         'Transporte' => [

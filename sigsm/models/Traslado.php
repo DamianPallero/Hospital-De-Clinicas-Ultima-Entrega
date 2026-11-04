@@ -171,6 +171,106 @@ class Traslado {
         return $prep->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function listarPersonalTransporte() {
+        $sql = '(
+            SELECT id_conductor AS id_personal, "Conductor" AS tipo_personal, nombre, apellido, licencia AS documento, estado
+            FROM conductor
+        )
+        UNION ALL
+        (
+            SELECT id_enfermero AS id_personal, "Enfermero" AS tipo_personal, nombre, apellido, matricula AS documento, estado
+            FROM enfermero
+        )
+        ORDER BY tipo_personal, apellido, nombre';
+
+        $prep = $this->conexion->prepare($sql);
+        $prep->execute();
+        return $prep->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function crearPersonalTransporte($tipo, $nombre, $apellido, $documento, $estado = 'Activo') {
+        $tipo = strtolower(trim((string)$tipo));
+        $nombre = trim((string)$nombre);
+        $apellido = trim((string)$apellido);
+        $documento = trim((string)$documento);
+        $estado = trim((string)$estado);
+
+        if (!in_array($tipo, ['conductor', 'enfermero'], true) || $nombre === '' || $apellido === '' || $documento === '') {
+            return false;
+        }
+
+        if ($tipo === 'conductor') {
+            $estadoValido = in_array($estado, ['Activo', 'De Licencia', 'Inactivo'], true) ? $estado : 'Activo';
+            $sql = 'INSERT INTO conductor (nombre, apellido, licencia, estado) VALUES (:nombre, :apellido, :documento, :estado)';
+            $prep = $this->conexion->prepare($sql);
+            $prep->bindParam(':nombre', $nombre);
+            $prep->bindParam(':apellido', $apellido);
+            $prep->bindParam(':documento', $documento);
+            $prep->bindParam(':estado', $estadoValido);
+            return $prep->execute();
+        }
+
+        $estadoValido = in_array($estado, ['Activo', 'Inactivo'], true) ? $estado : 'Activo';
+        $sql = 'INSERT INTO enfermero (nombre, apellido, matricula, estado) VALUES (:nombre, :apellido, :documento, :estado)';
+        $prep = $this->conexion->prepare($sql);
+        $prep->bindParam(':nombre', $nombre);
+        $prep->bindParam(':apellido', $apellido);
+        $prep->bindParam(':documento', $documento);
+        $prep->bindParam(':estado', $estadoValido);
+        return $prep->execute();
+    }
+
+    public function actualizarPersonalTransporte($tipo, $id, $nombre, $apellido, $documento, $estado = 'Activo') {
+        $tipo = strtolower(trim((string)$tipo));
+        $id = (int)$id;
+        $nombre = trim((string)$nombre);
+        $apellido = trim((string)$apellido);
+        $documento = trim((string)$documento);
+        $estado = trim((string)$estado);
+
+        if ($id <= 0 || !in_array($tipo, ['conductor', 'enfermero'], true) || $nombre === '' || $apellido === '' || $documento === '') {
+            return false;
+        }
+
+        if ($tipo === 'conductor') {
+            $estadoValido = in_array($estado, ['Activo', 'De Licencia', 'Inactivo'], true) ? $estado : 'Activo';
+            $sql = 'UPDATE conductor SET nombre = :nombre, apellido = :apellido, licencia = :documento, estado = :estado WHERE id_conductor = :id';
+            $prep = $this->conexion->prepare($sql);
+            $prep->bindParam(':nombre', $nombre);
+            $prep->bindParam(':apellido', $apellido);
+            $prep->bindParam(':documento', $documento);
+            $prep->bindParam(':estado', $estadoValido);
+            $prep->bindParam(':id', $id, PDO::PARAM_INT);
+            return $prep->execute();
+        }
+
+        $estadoValido = in_array($estado, ['Activo', 'Inactivo'], true) ? $estado : 'Activo';
+        $sql = 'UPDATE enfermero SET nombre = :nombre, apellido = :apellido, matricula = :documento, estado = :estado WHERE id_enfermero = :id';
+        $prep = $this->conexion->prepare($sql);
+        $prep->bindParam(':nombre', $nombre);
+        $prep->bindParam(':apellido', $apellido);
+        $prep->bindParam(':documento', $documento);
+        $prep->bindParam(':estado', $estadoValido);
+        $prep->bindParam(':id', $id, PDO::PARAM_INT);
+        return $prep->execute();
+    }
+
+    public function eliminarPersonalTransporte($tipo, $id) {
+        $tipo = strtolower(trim((string)$tipo));
+        $id = (int)$id;
+
+        if ($id <= 0 || !in_array($tipo, ['conductor', 'enfermero'], true)) {
+            return false;
+        }
+
+        $campo = $tipo === 'conductor' ? 'id_conductor' : 'id_enfermero';
+        $tabla = $tipo === 'conductor' ? 'conductor' : 'enfermero';
+        $sql = "DELETE FROM {$tabla} WHERE {$campo} = :id";
+        $prep = $this->conexion->prepare($sql);
+        $prep->bindParam(':id', $id, PDO::PARAM_INT);
+        return $prep->execute();
+    }
+
     public function listarVehiculos() {
         $prep = $this->conexion->prepare('SELECT id_vehiculo, patente, tipo, estado FROM vehiculo ORDER BY tipo, patente');
         $prep->execute();

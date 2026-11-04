@@ -84,5 +84,45 @@ if ($op === 'actualizar_estado_vehiculo' && tienePermiso('gestionar_vehiculos'))
     }
 }
 
+if ($op === 'crear_personal_transporte' && tienePermiso('gestionar_personal_transporte')) {
+    $tipoPersonal = trim($_POST['tipo_personal'] ?? '');
+    $nombre = trim($_POST['nombre'] ?? '');
+    $apellido = trim($_POST['apellido'] ?? '');
+    $documento = trim($_POST['documento'] ?? '');
+    $estado = trim($_POST['estado'] ?? 'Activo');
+
+    if (in_array($tipoPersonal, ['conductor', 'enfermero'], true) && $nombre !== '' && $apellido !== '' && $documento !== '') {
+        $mensaje = $modTras->crearPersonalTransporte($tipoPersonal, $nombre, $apellido, $documento, $estado) ? 'ok_personal' : 'error';
+    } else {
+        $mensaje = 'error_validacion';
+    }
+}
+
+if ($op === 'editar_personal_transporte' && tienePermiso('gestionar_personal_transporte')) {
+    $tipoPersonal = trim($_POST['tipo_personal'] ?? '');
+    $idPersonal = (int)($_POST['id_personal'] ?? 0);
+    $nombre = trim($_POST['nombre'] ?? '');
+    $apellido = trim($_POST['apellido'] ?? '');
+    $documento = trim($_POST['documento'] ?? '');
+    $estado = trim($_POST['estado'] ?? 'Activo');
+
+    if ($idPersonal > 0 && in_array($tipoPersonal, ['conductor', 'enfermero'], true) && $nombre !== '' && $apellido !== '' && $documento !== '') {
+        $mensaje = $modTras->actualizarPersonalTransporte($tipoPersonal, $idPersonal, $nombre, $apellido, $documento, $estado) ? 'ok_personal' : 'error';
+    } else {
+        $mensaje = 'error_validacion';
+    }
+}
+
+if ($op === 'eliminar_personal_transporte' && tienePermiso('gestionar_personal_transporte')) {
+    $tipoPersonal = trim($_POST['tipo_personal'] ?? '');
+    $idPersonal = (int)($_POST['id_personal'] ?? 0);
+
+    if ($idPersonal > 0 && in_array($tipoPersonal, ['conductor', 'enfermero'], true)) {
+        $mensaje = $modTras->eliminarPersonalTransporte($tipoPersonal, $idPersonal) ? 'ok_personal_eliminado' : 'error';
+    } else {
+        $mensaje = 'error_validacion';
+    }
+}
+
 header('Location: /sigsm/views/traslados.php?msg=' . $mensaje);
 exit();

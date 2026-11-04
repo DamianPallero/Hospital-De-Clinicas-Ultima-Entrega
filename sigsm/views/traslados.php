@@ -22,12 +22,14 @@ $choferes = $modTras->listarConductores();
 $enfs = $modTras->listarEnfermeros();
 $autos = $modTras->listarVehiculosDisponibles();
 $vehiculosEstado = $modTras->listarVehiculos();
+$personalTransporte = $modTras->listarPersonalTransporte();
 
 $permCrear = tienePermiso('crear_traslado');
 $permAsignar = tienePermiso('asignar_traslado');
 $permCambiarSit = tienePermiso('actualizar_estado_traslado');
 $permVerVehiculos = tienePermiso('ver_vehiculos');
 $permGestionVehiculos = tienePermiso('gestionar_vehiculos');
+$permGestionPersonal = tienePermiso('gestionar_personal_transporte');
 
 $mensaje = $_GET['msg'] ?? '';
 $claseAviso = '';
@@ -38,6 +40,8 @@ switch ($mensaje) {
     case 'ok_asignar': $claseAviso = 'success'; $textoAviso = 'Recursos asignados correctamente.'; break;
     case 'ok_estado': $claseAviso = 'success'; $textoAviso = 'Estado del traslado actualizado.'; break;
     case 'ok_vehiculo': $claseAviso = 'success'; $textoAviso = 'Estado del vehículo actualizado correctamente.'; break;
+    case 'ok_personal': $claseAviso = 'success'; $textoAviso = 'El personal de transporte fue actualizado correctamente.'; break;
+    case 'ok_personal_eliminado': $claseAviso = 'success'; $textoAviso = 'El registro de personal fue eliminado correctamente.'; break;
     case 'error_validacion': $claseAviso = 'danger'; $textoAviso = 'Faltan datos obligatorios.'; break;
     case 'error_csrf': $claseAviso = 'danger'; $textoAviso = 'Error de seguridad. Intente nuevamente.'; break;
     case 'error': $claseAviso = 'danger'; $textoAviso = 'Ocurrió un error al procesar la solicitud.'; break;
@@ -265,6 +269,67 @@ $totalListos = count(array_filter($tras, fn($elemT) => $elemT['estado_traslado']
         </div>
     </div>
     <?php endif; ?>
+
+    <?php if ($permGestionPersonal): ?>
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white border-bottom fw-bold d-flex justify-content-between align-items-center">
+            <span>Personal de transporte</span>
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#personalModal" data-action="crear">+ Nuevo integrante</button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 table-sm">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Tipo</th>
+                            <th>Nombre</th>
+                            <th>Documento</th>
+                            <th>Estado</th>
+                            <th class="text-end pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($personalTransporte)): ?>
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">No hay personal registrado.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($personalTransporte as $persona): ?>
+                                <tr>
+                                    <td class="ps-4"><?= e($persona['tipo_personal']) ?></td>
+                                    <td><?= e($persona['apellido'] . ', ' . $persona['nombre']) ?></td>
+                                    <td><?= e($persona['documento']) ?></td>
+                                    <td><?= badgeEstado($persona['estado']) ?></td>
+                                    <td class="text-end pe-4">
+                                        <div class="d-flex justify-content-end gap-2 flex-wrap">
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#personalModal"
+                                                    data-action="editar"
+                                                    data-id="<?= (int)$persona['id_personal'] ?>"
+                                                    data-tipo="<?= e($persona['tipo_personal']) ?>"
+                                                    data-nombre="<?= e($persona['nombre']) ?>"
+                                                    data-apellido="<?= e($persona['apellido']) ?>"
+                                                    data-documento="<?= e($persona['documento']) ?>"
+                                                    data-estado="<?= e($persona['estado']) ?>">Editar</button>
+                                            <form action="../controllers/TrasladoController.php" method="POST" class="d-inline">
+                                                <input type="hidden" name="accion" value="eliminar_personal_transporte">
+                                                <input type="hidden" name="id_personal" value="<?= (int)$persona['id_personal'] ?>">
+                                                <input type="hidden" name="tipo_personal" value="<?= e(strtolower($persona['tipo_personal'])) ?>">
+                                                <input type="hidden" name="csrf_token" value="<?= e(generarTokenCSRF()) ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Está seguro de eliminar este registro?');">Eliminar</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 </main>
 
 <?php if ($permGestionVehiculos): ?>
@@ -300,6 +365,59 @@ $totalListos = count(array_filter($tras, fn($elemT) => $elemT['estado_traslado']
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary btn-sm px-4">Guardar vehículo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php if ($permGestionPersonal): ?>
+<div class="modal fade modal-fullscreen-sm-down" id="personalModal" tabindex="-1" aria-labelledby="personalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="../controllers/TrasladoController.php" method="POST">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold" id="personalModalLabel">Nuevo integrante del transporte</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="accion" id="personal_accion" value="crear_personal_transporte">
+                    <input type="hidden" name="id_personal" id="personal_id">
+                    <input type="hidden" name="csrf_token" value="<?= e(generarTokenCSRF()) ?>">
+                    <div class="mb-3">
+                        <label for="personal_tipo" class="form-label small fw-bold">Tipo de personal</label>
+                        <select class="form-select" id="personal_tipo" name="tipo_personal" required>
+                            <option value="conductor">Conductor</option>
+                            <option value="enfermero">Enfermero/a</option>
+                        </select>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="personal_nombre" class="form-label small fw-bold">Nombre</label>
+                            <input type="text" class="form-control" id="personal_nombre" name="nombre" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="personal_apellido" class="form-label small fw-bold">Apellido</label>
+                            <input type="text" class="form-control" id="personal_apellido" name="apellido" required>
+                        </div>
+                    </div>
+                    <div class="mb-3 mt-3">
+                        <label for="personal_documento" id="personal_documento_label" class="form-label small fw-bold">Licencia</label>
+                        <input type="text" class="form-control" id="personal_documento" name="documento" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="personal_estado" class="form-label small fw-bold">Estado</label>
+                        <select class="form-select" id="personal_estado" name="estado" required>
+                            <option value="Activo">Activo</option>
+                            <option value="De Licencia">De Licencia</option>
+                            <option value="Inactivo">Inactivo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4" id="personal_submit">Guardar</button>
                 </div>
             </form>
         </div>
@@ -432,6 +550,64 @@ document.addEventListener('DOMContentLoaded', function () {
             modalAsignar.querySelector('#asignar_id').value = boton.getAttribute('data-id');
             modalAsignar.querySelector('#asignar_ruta').textContent = boton.getAttribute('data-origen') + ' → ' + boton.getAttribute('data-destino');
         });
+    }
+
+    var personalModal = document.getElementById('personalModal');
+    if (personalModal) {
+        var personalTipo = document.getElementById('personal_tipo');
+        var personalDocumentoLabel = document.getElementById('personal_documento_label');
+        var personalEstado = document.getElementById('personal_estado');
+        var personalTitulo = document.getElementById('personalModalLabel');
+
+        function actualizarPersonalSelectEstado() {
+            var tipo = personalTipo.value;
+            var opciones = tipo === 'enfermero'
+                ? ['Activo', 'Inactivo']
+                : ['Activo', 'De Licencia', 'Inactivo'];
+
+            personalEstado.innerHTML = opciones.map(function (estado) {
+                return '<option value="' + estado + '">' + estado + '</option>';
+            }).join('');
+
+            personalDocumentoLabel.textContent = tipo === 'enfermero' ? 'Matrícula' : 'Licencia';
+        }
+
+        personalTipo.addEventListener('change', actualizarPersonalSelectEstado);
+
+        personalModal.addEventListener('show.bs.modal', function (evento) {
+            var boton = evento.relatedTarget;
+            var action = boton ? boton.getAttribute('data-action') : 'crear';
+
+            if (action === 'editar') {
+                var tipo = (boton.getAttribute('data-tipo') || 'conductor').toLowerCase();
+                personalTipo.value = tipo;
+                document.getElementById('personal_accion').value = 'editar_personal_transporte';
+                document.getElementById('personal_id').value = boton.getAttribute('data-id');
+                document.getElementById('personal_nombre').value = boton.getAttribute('data-nombre') || '';
+                document.getElementById('personal_apellido').value = boton.getAttribute('data-apellido') || '';
+                document.getElementById('personal_documento').value = boton.getAttribute('data-documento') || '';
+                document.getElementById('personal_estado').value = boton.getAttribute('data-estado') || 'Activo';
+                personalTitulo.textContent = 'Editar integrante del transporte';
+                document.getElementById('personal_submit').textContent = 'Guardar cambios';
+            } else {
+                document.getElementById('personal_accion').value = 'crear_personal_transporte';
+                document.getElementById('personal_id').value = '';
+                document.getElementById('personal_nombre').value = '';
+                document.getElementById('personal_apellido').value = '';
+                document.getElementById('personal_documento').value = '';
+                personalTipo.value = 'conductor';
+                personalTitulo.textContent = 'Nuevo integrante del transporte';
+                document.getElementById('personal_submit').textContent = 'Guardar';
+            }
+
+            actualizarPersonalSelectEstado();
+            if (action === 'editar') {
+                personalEstado.value = boton.getAttribute('data-estado') || 'Activo';
+            }
+        });
+
+        personalTipo.value = 'conductor';
+        actualizarPersonalSelectEstado();
     }
 });
 </script>
