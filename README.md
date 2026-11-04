@@ -115,7 +115,7 @@ La configuracion de SSL local para Apache se genera al iniciar el servicio si no
 USO
 
 1. Accede al portal mediante: http://[ip-server-dti]/
-2. Inicia sesión con las credenciales iniciales definidas en el script de inicialización de la base de datos. Las contraseñas para todos los usuarios iniciales son 123abc. Asegúrese de eliminar las credenciales iniciales.
+2. Inicia sesión con las credenciales iniciales definidas en el script de inicialización de la base de datos. Las contraseñas para todos los usuarios iniciales son 123abc, pero inicie como 'carmenlatorre@gmail.com', puede ver los otros usuarios en el panel de personal. Asegúrese de eliminar las credenciales iniciales.
 3. Navegación por Roles:
 Enfermería/Medico: Pueden ver y cargar documentos, pero no eliminarlos.
 Administrador General: Control total (crear, editar, eliminar documentos y gestionar usuarios).
