@@ -18,42 +18,42 @@ INDICE
 8. Equipo
 9. Documentacion y Base de Datos
 
-DESCRIPCION
+DESCRIPCIÓN
 
-El S.I.G.S.M. reemplaza el sistema de registros en papel utilizado actualmente por el Hospital de Clinicas, digitalizando los procesos de:
-Solicitud y asignacion de traslados de pacientes (biologicos y no biologicos).
-Carga, consulta y gestion segura de documentacion clinica mediante un repositorio con encriptacion de rutas, hash de archivos y validacion de permisos.
-Gestion de recursos (vehiculos, conductores, enfermeros).
-Encuestas anonimas de satisfaccion accesibles via codigos QR con sistema de versiones, invalidacion automatica y proteccion anti-reenvio.
+El S.I.G.S.M. reemplaza el sistema de registros en papel utilizado actualmente por el Hospital de Clínicas, digitalizando los procesos de:
+Solicitud y asignación de traslados de pacientes.
+Carga, consulta y gestion segura de documentación clínica mediante un repositorio con encriptación de rutas, hash de archivos y validación de permisos.
+Gestion de recursos (vehículos, conductores, enfermeros).
+Encuestas anónimas de satisfacción accesibles via codigos QR con sistema de versiones, invalidación automática y protección anti-reenvío.
 
 El sistema opera exclusivamente en la intranet hospitalaria, con acceso restringido mediante un modelo de Control de Acceso Basado en Roles (RBAC), credenciales institucionales validadas y una infraestructura de base de datos preparada para alta disponibilidad con replicas y monitoreo de failover.
 
-MODULOS
+MÓDULOS
 
-1. Modulo de Documentacion y Encuestas
-Panel administrativo con RBAC estricto (Enfermeria carga, Administrador elimina).
+1. Modulo de Documentación y Encuestas
+Panel administrativo con RBAC estricto (Enfermería carga, Administrador elimina).
 Gateway de Archivos Seguro: Los archivos se guardan bajo nombres hash, se almacenan en directorios protegidos y se sirven a traves de un proxy PHP que valida permisos, tipo MIME y acceso directo.
-QR de Documento (Un solo uso): Genera un token temporal que se invalida automaticamente tras el primer escaneo.
-QR de Encuestas (Versionado): Se utiliza un codigo estatico para impresion en paredes y se puede invalidar versiones previas desde el panel de IT, generando una nueva URL y mostrando alertas de actualizacion.
-Proteccion Anti-Reenvio: Implementacion de cabeceras Cache-Control, control de bfcache y protecciones front-end para evitar que el boton Atras del navegador permita responder la encuesta multiples veces.
-Panel de gestion documental y de respuestas con filtrado, estadisticas y acciones restringidas por rol.
+QR de Documento (Un solo uso): Genera un token temporal que se invalida automáticamente tras el primer escaneo.
+QR de Encuestas (Con versiones): Se utiliza un codigo estático para impresión en paredes y se puede invalidar versiones previas desde el panel de IT, generando una nueva URL y mostrando alertas de actualización.
+Protección Anti-Reenvío: Implementación de cabeceras Cache-Control, control de bfcache y protecciones front-end para evitar que el botón para ir atrás del navegador permita responder la encuesta multiples veces.
+Panel de gestion documental y de respuestas con filtrado, estadísticas y acciones restringidas por rol.
 
 2. Modulo de Traslados (Ambulancias)
 Panel de gestion de solicitudes de traslado.
-Formulario de alta con validacion de campos clinicos y logisticos (oxigeno, aislamiento, tipo de vehiculo, ascensor y observaciones).
-Vista de seguimiento de estado, asignacion de recursos y control de conductores, enfermeros y vehiculos.
+Formulario de alta con validación de campos clínicos y logísticos (oxigeno, aislamiento, tipo de vehículo, ascensor y observaciones).
+Vista de seguimiento de estado, asignación de recursos y control de conductores, enfermeros y vehículos.
 Manejo de estados operativos para traslados en curso, completados, pendientes o con prioridad especifica.
 
 3. Modulo de Seguridad y continuidad operativa
-Estructura de aplicacion en contenedores Docker con PHP + Apache + MySQL.
-Configuracion de base de datos primaria y replica para lectura escalada y resiliencia.
-Monitores de failover y failback para reconfiguracion automatica de la replica en caso de caida del primario.
+Estructura de aplicación en contenedores Docker con PHP + Apache + MySQL.
+Configuración de base de datos primaria y replica para lectura escalada y resiliencia.
+Monitores de failover y failback para reconfiguración automática de la replica en caso de caída del primario.
 Modo offline con respaldo en SQLite para continuidad parcial cuando la base principal no este disponible.
 
-TECNOLOGIAS
+TECNOLOGÍAS
 
-Backend: PHP 8.2 (Programacion Orientada a Objetos, PDO para consultas preparadas, autenticacion centralizada y control de sessiones).
-Base de Datos: MySQL 8.0 con configuracion de replica, failover y sincronizacion GTID.
+Backend: PHP 8.2 (Programación Orientada a Objetos, PDO para consultas preparadas, autenticación centralizada y control de sesiones).
+Base de Datos: MySQL 8.0 con configuración de replica, failover y sincronización GTID.
 Frontend: HTML5, JavaScript (Vanilla), Bootstrap 5.3 (Diseño responsive, accesible y mobile-first).
 Servidor Web: Apache 2.4+ dentro de contenedores Docker.
 Contenedores: Docker Compose con servicios web, base primaria, replica, monitor de failover y monitor de failback.
@@ -68,11 +68,11 @@ Git.
 Visual Studio Code.
 Navegador moderno (Chrome, Firefox o Edge).
 
-INSTALACION
+INSTALACIÓN
 
 1. Clonar el repositorio
 cd /ruta/de/trabajo
-git clone https://github.com/tu-usuario/sigsm.git
+git clone https://github.com/foxwareenterprises/Hospital-De-Clinicas.git
 cd sigsm
 
 2. Levantar la infraestructura con Docker
@@ -94,7 +94,7 @@ docker compose ps
 
 docker compose logs -f web
 
-La aplicacion queda disponible en:
+La aplicación queda disponible en:
 http://localhost/
 http://localhost/sigsm/
 http://[ip-server-dti]/
@@ -103,26 +103,26 @@ https://[ip-server-dti]/
 https://[ip-server-dti]/sigsm/
 
 
-4. Configuracion de la Base de Datos
-La inicializacion de la base de datos se realiza automaticamente desde los scripts incluidos en la carpeta database/.
-Los archivos init.sql y setup_replica.sql generan la estructura inicial, usuarios, roles y la configuracion de replica.
-Las variables de entorno definidas en docker-compose.yaml se encargan de conectar la aplicacion con la base principal y la replica sin requerir cambios manuales en el codigo.
+4. Configuración de la Base de Datos
+La inicialización de la base de datos se realiza automáticamente desde los scripts incluidos en la carpeta database/.
+Los archivos init.sql y setup_replica.sql generan la estructura inicial, usuarios, roles y la configuración de replica.
+Las variables de entorno definidas en docker-compose.yaml se encargan de conectar la aplicación con la base principal y la replica sin requerir cambios manuales en el codigo.
 
 5. Permisos de Carpetas
-La aplicacion crea y prepara automaticamente las carpetas uploads/, temp_qr/ y config/ dentro del contenedor para garantizar acceso y escritura para la capa web.
+La aplicación crea y prepara automáticamente las carpetas uploads/, temp_qr/ y config/ dentro del contenedor para garantizar acceso y escritura para la capa web.
 La configuracion de SSL local para Apache se genera al iniciar el servicio si no existe un certificado previo.
 
 USO
 
 1. Accede al portal mediante: http://[ip-server-dti]/
-2. Inicia sesion con las credenciales iniciales definidas en el script de inicializacion de la base de datos.
-3. Navegacion por Roles:
-Enfermeria/Medico: Pueden ver y cargar documentos, pero no eliminarlos.
+2. Inicia sesión con las credenciales iniciales definidas en el script de inicialización de la base de datos. Las contraseñas para todos los usuarios iniciales son 123abc. Asegúrese de eliminar las credenciales iniciales.
+3. Navegación por Roles:
+Enfermería/Medico: Pueden ver y cargar documentos, pero no eliminarlos.
 Administrador General: Control total (crear, editar, eliminar documentos y gestionar usuarios).
 IT: Acceso exclusivo al panel de gestion de encuestas, QR y control de versiones.
 Transporte: Redirigido automaticamente a su modulo exclusivo.
-4. Generacion de QR: Desde el panel principal o el modulo de IT, genera codigos QR para documentos especificos o para el portal de encuestas.
-5. Gestion operativa: El panel principal permite consultar actividad del dia, acceder a documentos, encuestas, respuestas y a la gestion de traslados segun el rol asociado.
+4. Generación de QR: Desde el panel principal o el modulo de IT, genera códigos QR para documentos específicos o para el portal de encuestas.
+5. Gestion operativa: El panel principal permite consultar actividad del día, acceder a documentos, encuestas, respuestas y a la gestión de traslados según el rol asociado.
 
 ESTRUCTURA DEL PROYECTO
 
@@ -262,10 +262,10 @@ ESTRUCTURA DEL PROYECTO
 EQUIPO
 
 Equipo FoxWare
-Desarrollado como Proyecto Final para el Polo MVD 3 MA de Programacion Full Stack.
+Desarrollado como Proyecto Final para el Polo MVD 3 MA del Bachillerato Tecnológico Bilingüe.
 
-DOCUMENTACION Y BASE DE DATOS
+DOCUMENTACIÓN Y BASE DE DATOS
 
-Los scripts DDL y DML de inicializacion (init.sql) y configuracion de la base de datos se encuentran dentro de la carpeta database/ del proyecto, junto con los archivos de replica, failover y restauracion.
-El esquema de base de datos esta disenado para garantizar la integridad referencial, la trazabilidad de las cargas de documentos, la segregacion de roles y la resiliencia operativa del sistema.
-La aplicacion contempla un modelo de alta disponibilidad con base principal MySQL y replica secundaria, asi como mecanismos de monitorizacion para mantener la continuidad en caso de interrupciones del servidor primario.
+Los scripts DDL y DML de inicialización (init.sql) y configuración de la base de datos se encuentran dentro de la carpeta database/ del proyecto, junto con los archivos de replica, failover y restauración.
+El esquema de base de datos esta diseñado para garantizar la integridad referencial, la trazabilidad de las cargas de documentos, la segregación de roles y la resiliencia operativa del sistema.
+La aplicación contempla un modelo de alta disponibilidad con base principal MySQL y replica secundaria, así como mecanismos de monitorización para mantener la continuidad en caso de interrupciones del servidor primario.
