@@ -10,7 +10,8 @@ services:
       - "0.0.0.0:80:80"
       - "0.0.0.0:443:443"
     volumes:
-      - ./:/var/www/html/sigsm
+      # Added :Z flag for openEuler's enforcing SELinux policy on private unshared volumes
+      - ./:/var/www/html/sigsm:Z
     depends_on:
       - db_primary
       - db_replica
@@ -30,6 +31,8 @@ services:
   db_primary:
     image: mysql:8.0
     container_name: sigsm_db_primary
+    security_opt:
+      - seccomp:unconfined
     ports:
       - "3307:3306"
     environment:
@@ -39,7 +42,7 @@ services:
       MYSQL_PASSWORD: sigsm_secure_password
       MYSQL_ROOT_HOST: "%"
     volumes:
-      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:z
       - db_primary_data:/var/lib/mysql
     restart: unless-stopped
     command:
@@ -53,6 +56,8 @@ services:
   db_replica:
     image: mysql:8.0
     container_name: sigsm_db_replica
+    security_opt:
+      - seccomp:unconfined
     ports:
       - "3308:3306"
     environment:
@@ -61,7 +66,7 @@ services:
     depends_on:
       - db_primary
     volumes:
-      - ./database/setup_replica.sql:/docker-entrypoint-initdb.d/02-setup-replica.sql
+      - ./database/setup_replica.sql:/docker-entrypoint-initdb.d/02-setup-replica.sql:z
       - db_replica_data:/var/lib/mysql
     restart: unless-stopped
     entrypoint:
@@ -77,6 +82,8 @@ services:
   failover_monitor:
     image: mysql:8.0
     container_name: sigsm_failover_monitor
+    security_opt:
+      - seccomp:unconfined
     depends_on:
       - db_replica
     environment:
@@ -106,13 +113,15 @@ services:
   failback_monitor:
     image: mysql:8.0
     container_name: sigsm_failback_monitor
+    security_opt:
+      - seccomp:unconfined
     depends_on:
       - db_primary
       - db_replica
     environment:
       MYSQL_ROOT_PASSWORD: root_secure_password
     volumes:
-      - ./database/failback_primary.sh:/usr/local/bin/failback_primary.sh:ro
+      - ./database/failback_primary.sh:/usr/local/bin/failback_primary.sh:ro,z
     entrypoint:
       - /bin/bash
       - -c
