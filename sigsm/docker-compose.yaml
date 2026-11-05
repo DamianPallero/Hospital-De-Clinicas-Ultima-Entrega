@@ -1,4 +1,5 @@
 version: "2.1"
+
 services:
   web:
     build:
@@ -75,7 +76,14 @@ services:
           echo "Waiting for db_primary..."
           sleep 2
         done
-        exec docker-entrypoint.sh mysqld --default-authentication-plugin=caching_sha2_password --server-id=2 --relay-log=relay-bin --read-only=1 --gtid-mode=ON --enforce-gtid-consistency=ON --log-slave-updates=1
+        exec docker-entrypoint.sh mysqld \
+          --default-authentication-plugin=caching_sha2_password \
+          --server-id=2 \
+          --relay-log=relay-bin \
+          --read-only=1 \
+          --gtid-mode=ON \
+          --enforce-gtid-consistency=ON \
+          --log-replica-updates=1
 
   failover_monitor:
     image: mysql:8.0
@@ -94,11 +102,13 @@ services:
           echo "Waiting for db_replica..."
           sleep 2
         done
+        
         while true; do
           if ! mysqladmin ping -h db_primary -uroot -p"$$MYSQL_ROOT_PASSWORD" --silent >/dev/null 2>&1; then
             echo "[failover] Primary unavailable. Checking replica promotion..."
+            
             if mysql -uroot -p"$$MYSQL_ROOT_PASSWORD" -h db_replica -e "SELECT @@read_only" 2>/dev/null | tail -n +2 | grep -q '1'; then
-              mysql -uroot -p"$$MYSQL_ROOT_PASSWORD" -h db_replica -e "STOP SLAVE; RESET SLAVE ALL; SET GLOBAL read_only = 0;"
+              mysql -uroot -p"$$MYSQL_ROOT_PASSWORD" -h db_replica -e "STOP REPLICA; RESET REPLICA ALL; SET GLOBAL read_only = 0;"
               echo "[failover] Replica promoted to writable primary."
             else
               echo "[failover] Replica already writable or promotion not needed."
