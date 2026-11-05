@@ -10,7 +10,6 @@ services:
       - "0.0.0.0:80:80"
       - "0.0.0.0:443:443"
     volumes:
-      # Added :Z flag for openEuler's enforcing SELinux policy on private unshared volumes
       - ./:/var/www/html/sigsm:Z
     depends_on:
       - db_primary
