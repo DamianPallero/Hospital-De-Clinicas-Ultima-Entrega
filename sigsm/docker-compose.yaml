@@ -1,3 +1,5 @@
+version: "3.7"
+
 services:
   web:
     build:
@@ -10,10 +12,8 @@ services:
     volumes:
       - ./:/var/www/html/sigsm
     depends_on:
-      db_primary:
-        condition: service_healthy
-      db_replica:
-        condition: service_healthy
+      - db_primary
+      - db_replica
     environment:
       APP_ENV: development
       APP_FORCE_HTTPS: "false"
@@ -64,8 +64,7 @@ services:
       MYSQL_ROOT_PASSWORD: root_secure_password
       MYSQL_ROOT_HOST: "%"
     depends_on:
-      db_primary:
-        condition: service_healthy
+      - db_primary
     volumes:
       - ./database/setup_replica.sql:/docker-entrypoint-initdb.d/02-setup-replica.sql
       - db_replica_data:/var/lib/mysql
@@ -74,8 +73,8 @@ services:
       - /bin/bash
       - -c
       - |
-        until mysqladmin ping -h db_primary -uroot -p"$${MYSQL_ROOT_PASSWORD}" --silent; do
-          echo "Waiting for db_primary..."
+        until mysqladmin ping -h db_primary -uroot -p"$${MYSQL_ROOT_PASSWORD}" --silent && mysql -uroot -p"$${MYSQL_ROOT_PASSWORD}" -h db_primary -e "SELECT 1" >/dev/null 2>&1; do
+          echo "Waiting for db_primary database engine availability..."
           sleep 2
         done
         exec docker-entrypoint.sh mysqld --default-authentication-plugin=caching_sha2_password --server-id=2 --relay-log=relay-bin --read-only=1 --gtid-mode=ON --enforce-gtid-consistency=ON --log-slave-updates=1
@@ -89,8 +88,7 @@ services:
     image: mysql:8.0
     container_name: sigsm_failover_monitor
     depends_on:
-      db_replica:
-        condition: service_healthy
+      - db_replica
     environment:
       MYSQL_ROOT_PASSWORD: root_secure_password
     entrypoint:
@@ -119,10 +117,8 @@ services:
     image: mysql:8.0
     container_name: sigsm_failback_monitor
     depends_on:
-      db_primary:
-        condition: service_healthy
-      db_replica:
-        condition: service_healthy
+      - db_primary
+      - db_replica
     environment:
       MYSQL_ROOT_PASSWORD: root_secure_password
     volumes:
