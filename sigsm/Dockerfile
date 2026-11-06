@@ -5,37 +5,15 @@ ENV APACHE_DOCUMENT_ROOT=/var/www/html \
     APP_ENV=development
 
 RUN set -eux; \
-    if command -v dnf >/dev/null 2>&1; then \
-        dnf install -y --setopt=install_weak_deps=0 \
-            libpng-devel \
-            libjpeg-turbo-devel \
-            freetype-devel \
-            mariadb \
-            openssl \
-            sqlite-devel \
-            cronie \
-            && dnf clean all; \
-    elif command -v yum >/dev/null 2>&1; then \
-        yum install -y \
-            libpng-devel \
-            libjpeg-turbo-devel \
-            freetype-devel \
-            mariadb \
-            openssl \
-            sqlite-devel \
-            cronie \
-            && yum clean all; \
-    else \
-        apt-get update && apt-get install -y --no-install-recommends \
-            libpng-dev \
-            libjpeg62-turbo-dev \
-            libfreetype6-dev \
-            default-mysql-client \
-            libsqlite3-dev \
-            openssl \
-            cron \
-            && rm -rf /var/lib/apt/lists/*; \
-    fi; \
+    apt-get update && apt-get install -y --no-install-recommends \
+        libpng-dev \
+        libjpeg62-turbo-dev \
+        libfreetype6-dev \
+        default-mysql-client \
+        libsqlite3-dev \
+        openssl \
+        cron \
+    && rm -rf /var/lib/apt/lists/*; \
     docker-php-ext-configure gd --with-freetype --with-jpeg; \
     docker-php-ext-install -j"$(nproc)" gd pdo pdo_mysql pdo_sqlite; \
     a2enmod rewrite headers alias expires deflate ssl
